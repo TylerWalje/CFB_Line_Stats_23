@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Football Team Metrics 2023</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Add some basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .chart {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>2023 College Football Team Metrics</h1>
+    
+    <!-- Dropdown to select metric -->
+    <label for="metric-select">Select a metric:</label>
+    <select id="metric-select">
+        <!-- Options will be added dynamically by JavaScript -->
+    </select>
+
+    <!-- Container for the chart -->
+    <div id="chart" class="chart"></div>
+
+    <script>
+        // Load CSV data
+        d3.csv('cfb_team_metrics_2023.csv').then(function(data) {
+            
+            // Get the keys (metrics) from the CSV
+            const metrics = Object.keys(data[0]).filter(d => d !== "Team");
+            
+            // Populate dropdown with metrics
+            const dropdown = d3.select("#metric-select");
+            dropdown.selectAll("option")
+                .data(metrics)
+                .enter()
+                .append("option")
+                .text(d => d)
+                .attr("value", d => d);
+            
+            // Function to update chart based on selected metric
+            function updateChart(metric) {
+                // Clear previous chart
+                d3.select("#chart").html("");
+
+                // Sort data based on selected metric
+                data.sort((a, b) => d3.descending(+a[metric], +b[metric]));
+
+                // Set up SVG dimensions
+                const width = 800;
+                const height = 400;
+                const margin = {top: 20, right: 30, bottom: 40, left: 100};
+
+                // Create SVG
+                const svg = d3.select("#chart")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+
+                // X scale
+                const x = d3.scaleLinear()
+                    .domain([0, d3.max(data, d => +d[metric])])
+                    .range([margin.left, width - margin.right]);
+
+                // Y scale
+                const y = d3.scaleBand()
+                    .domain(data.map(d => d.Team))
+                    .range([margin.top, height - margin.bottom])
+                    .padding(0.1);
+
+                // X Axis
+                svg.append("g")
+                    .attr("transform", `translate(0,${height - margin.bottom})`)
+                    .call(d3.axisBottom(x).ticks(width / 80));
+
+                // Y Axis
+                svg.append("g")
+                    .attr("transform", `translate(${margin.left},0)`)
+                    .call(d3.axisLeft(y));
+
+                // Bars
+                svg.append("g")
+                    .selectAll("rect")
+                    .data(data)
+                    .enter()
+                    .append("rect")
+                    .attr("x", x(0))
+                    .attr("y", d => y(d.Team))
+                    .attr("width", d => x(+d[metric]) - x(0))
+                    .attr("height", y.bandwidth())
+                    .attr("fill", "steelblue");
+            }
+
+            // Initial chart display
+            updateChart(metrics[0]);
+
+            // Update chart when new metric is selected
+            dropdown.on("change", function() {
+                updateChart(this.value);
+            });
+
+        });
+    </script>
+
+</body>
+</html>
